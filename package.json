@@ -1,0 +1,90 @@
+{
+  "name": "colorful-tags",
+  "displayName": "Colorful Tags",
+  "description": "",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.104.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "colorful-tags.addTag",
+        "title": "Colorful Tags: Add Tag"
+      },
+      {
+        "command": "colorful-tags.removeTag",
+        "title": "Colorful Tags: Remove Tag"
+      },
+      {
+        "command": "colorful-tags.setTagName",
+        "title": "Colorful Tags: Rename Tag"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "colorful-tags.addTag",
+          "title": "Add Tag",
+          "group": "colorful-tags@1"
+        },
+        {
+          "command": "colorful-tags.removeTag",
+          "title": "Remove Tag",
+          "group": "colorful-tags@2"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "colorful-tags",
+          "title": "Colorful Tags",
+          "icon": "$(tag)"
+        }
+      ]
+    },
+    "views": {
+      "colorful-tags": [
+        {
+          "id": "colorful-tags.tagsView",
+          "name": "Tagged Files"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "npm run check-types && npm run lint && node esbuild.js",
+    "watch": "npm-run-all -p watch:*",
+    "watch:esbuild": "node esbuild.js --watch",
+    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
+    "package": "npm run check-types && npm run lint && node esbuild.js --production",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "npm run compile-tests && npm run compile && npm run lint",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.104.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "22.x",
+    "@typescript-eslint/eslint-plugin": "^8.45.0",
+    "@typescript-eslint/parser": "^8.45.0",
+    "eslint": "^9.36.0",
+    "esbuild": "^0.25.10",
+    "npm-run-all": "^4.1.5",
+    "typescript": "^5.9.3",
+    "@vscode/test-cli": "^0.0.11",
+    "@vscode/test-electron": "^2.5.2"
+  }
+}
