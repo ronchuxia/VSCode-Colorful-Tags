@@ -1,12 +1,13 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as fs from 'fs';
 import { TagColor } from './types';
 import { TagManager } from './tagManager';
 
 /**
  * Tree item types
  */
-type TreeItemType = 'tag' | 'file';
+type TreeItemType = 'tag' | 'file' | 'folder';
 
 /**
  * Custom tree item with metadata
@@ -22,18 +23,23 @@ class TagTreeItem extends vscode.TreeItem {
     super(label, collapsibleState);
 
     if (type === 'file' && filePath) {
-      // File item - make it clickable
+      // File item - click to open
       this.command = {
         command: 'vscode.open',
         title: 'Open File',
         arguments: [vscode.Uri.file(filePath)]
       };
+      this.resourceUri = vscode.Uri.file(filePath); // For icon
+      this.tooltip = filePath;
+    } else if (type === 'folder' && filePath) {
+      // Folder item - click to expand
       this.resourceUri = vscode.Uri.file(filePath);
       this.tooltip = filePath;
+      this.contextValue = 'folder'; // For menu grouping
     } else if (type === 'tag') {
       // Tag group item
-      this.contextValue = 'tagGroup';
       this.tooltip = `Files tagged with ${label}`;
+      this.contextValue = 'tagGroup';
     }
   }
 }
@@ -74,8 +80,11 @@ export class TagsTreeDataProvider implements vscode.TreeDataProvider<TagTreeItem
       // Root level - show tag colors that have files
       return Promise.resolve(this.getTagGroups());
     } else if (element.type === 'tag' && element.tagColor) {
-      // Tag level - show files with this tag
+      // Tag level - show files/folders with this tag
       return Promise.resolve(this.getFilesForTag(element.tagColor));
+    } else if (element.type === 'folder' && element.filePath) {
+      // Folder level - show contents of the folder
+      return Promise.resolve(this.getFolderContents(element.filePath));
     } else {
       // File level - no children
       return Promise.resolve([]);
@@ -115,13 +124,63 @@ export class TagsTreeDataProvider implements vscode.TreeDataProvider<TagTreeItem
     return files.map(filePath => {
       const fileName = path.basename(filePath);
 
-      return new TagTreeItem(
-        fileName,
-        vscode.TreeItemCollapsibleState.None,
-        'file',
-        undefined,
-        filePath
-      );
+      // TODO: if the path is deleted, the item will be treated as a file
+      const isDirectory = fs.existsSync(filePath) && fs.statSync(filePath).isDirectory();
+
+      if (isDirectory) {
+        // Folder - collapsible
+        return new TagTreeItem(
+          fileName,
+          vscode.TreeItemCollapsibleState.Collapsed,
+          'folder',
+          undefined,
+          filePath
+        );
+      } else {
+        // File - not collapsible
+        return new TagTreeItem(
+          fileName,
+          vscode.TreeItemCollapsibleState.None,
+          'file',
+          undefined,
+          filePath
+        );
+      }
     });
+  }
+
+  /**
+   * Get contents of a folder
+   */
+  private getFolderContents(folderPath: string): TagTreeItem[] {
+    try {
+      const items = fs.readdirSync(folderPath);
+
+      return items.map(item => {
+        const itemPath = path.join(folderPath, item);
+        const isDirectory = fs.existsSync(itemPath) && fs.statSync(itemPath).isDirectory();
+
+        if (isDirectory) {
+          return new TagTreeItem(
+            item,
+            vscode.TreeItemCollapsibleState.Collapsed,
+            'folder',
+            undefined,
+            itemPath
+          );
+        } else {
+          return new TagTreeItem(
+            item,
+            vscode.TreeItemCollapsibleState.None,
+            'file',
+            undefined,
+            itemPath
+          );
+        }
+      });
+    } catch (error) {
+      console.error(`Error reading folder ${folderPath}:`, error);
+      return [];
+    }
   }
 }

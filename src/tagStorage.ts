@@ -18,7 +18,7 @@ export class TagStorageManager {
    */
   async load(): Promise<void> {
     try {
-      const data = this.context.globalState.get<TagStorage>(TagStorageManager.STORAGE_KEY);
+      const data = this.context.workspaceState.get<TagStorage>(TagStorageManager.STORAGE_KEY);
 
       if (data) {
         // Load tags
@@ -51,7 +51,7 @@ export class TagStorageManager {
         tagNames: this.tagManager.getAllTagNames()
       };
 
-      await this.context.globalState.update(TagStorageManager.STORAGE_KEY, data);
+      await this.context.workspaceState.update(TagStorageManager.STORAGE_KEY, data);
       console.log('Tags saved successfully to storage');
     } catch (error) {
       console.error('Error saving tags to storage:', error);
@@ -64,7 +64,7 @@ export class TagStorageManager {
    */
   async clear(): Promise<void> {
     try {
-      await this.context.globalState.update(TagStorageManager.STORAGE_KEY, undefined);
+      await this.context.workspaceState.update(TagStorageManager.STORAGE_KEY, undefined);
       this.tagManager.clearAll();
       console.log('Tags cleared from storage');
     } catch (error) {
