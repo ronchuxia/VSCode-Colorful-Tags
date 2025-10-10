@@ -6,6 +6,7 @@ import { TagStorageManager } from './tagStorage';
 import { Commands } from './commands';
 import { TagsTreeDataProvider } from './treeDataProvider';
 import { FileDecorationProvider } from './decorationProvider';
+import { FileWatcher } from './fileWatcher';
 
 // Global instances
 let tagManager: TagManager;
@@ -24,9 +25,11 @@ export async function activate(context: vscode.ExtensionContext) {
 	await tagStorage.load();
 
 	// Save tags automatically when they change
-	tagManager.onDidChangeTags(() => {
-		tagStorage.save();
-	});
+	context.subscriptions.push(
+		tagManager.onDidChangeTags(() => {
+			tagStorage.save();
+		})
+	);
 
 	// Register commands
 	const commands = new Commands(tagManager);
@@ -34,13 +37,22 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	// Register tree view
 	const treeDataProvider = new TagsTreeDataProvider(tagManager);
-	vscode.window.registerTreeDataProvider('colorful-tags.tagsView', treeDataProvider);
+	context.subscriptions.push(
+		vscode.window.registerTreeDataProvider('colorful-tags.tagsView', treeDataProvider),
+		tagManager.onDidChangeTags(() => {
+			treeDataProvider.refresh();
+		})
+	);
 
 	// Register file decoration provider
 	const decorationProvider = new FileDecorationProvider(tagManager);
 	context.subscriptions.push(
 		vscode.window.registerFileDecorationProvider(decorationProvider)
 	);
+
+	// Register file watcher for tracking file operations
+	const fileWatcher = new FileWatcher(tagManager, context, treeDataProvider);
+	fileWatcher.register();
 }
 
 // This method is called when your extension is deactivated

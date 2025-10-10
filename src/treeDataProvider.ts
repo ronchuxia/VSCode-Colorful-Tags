@@ -35,7 +35,7 @@ class TagTreeItem extends vscode.TreeItem {
       // Folder item - click to expand
       this.resourceUri = vscode.Uri.file(filePath);
       this.tooltip = filePath;
-      this.contextValue = 'folder'; // For menu grouping
+      this.contextValue = 'folder';
     } else if (type === 'tag') {
       // Tag group item
       this.tooltip = `Files tagged with ${label}`;
@@ -51,12 +51,7 @@ export class TagsTreeDataProvider implements vscode.TreeDataProvider<TagTreeItem
   private _onDidChangeTreeData = new vscode.EventEmitter<TagTreeItem | undefined | null | void>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
-  constructor(private tagManager: TagManager) {
-    // Refresh tree when tags change
-    tagManager.onDidChangeTags(() => {
-      this.refresh();
-    });
-  }
+  constructor(private tagManager: TagManager) {}
 
   /**
    * Refresh the tree view
