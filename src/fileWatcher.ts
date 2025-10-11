@@ -5,12 +5,9 @@ import { TagsTreeDataProvider } from './treeDataProvider';
 
 /**
  * Handles file system operations to keep tags synchronized with file changes
- * Supports both VS Code workspace events and external file operations
+ * Only handles VS Code UI operations - external operations require manual refresh
  */
 export class FileWatcher {
-  /** Recently handled files to avoid double-processing */
-  private recentlyHandled = new Set<string>();
-
   /** Debounce timeout for tree view refresh */
   private refreshTimeout?: NodeJS.Timeout;
 
@@ -31,10 +28,6 @@ export class FileWatcher {
           const oldPath = file.oldUri.fsPath;
           const newPath = file.newUri.fsPath;
 
-          // Mark as handled (prevent FS watcher from re-processing)
-          this.markAsHandled(oldPath);
-          this.markAsHandled(newPath);
-
           // Update tags
           this.updatePathsOnRename(oldPath, newPath);
         });
@@ -48,9 +41,7 @@ export class FileWatcher {
     this.context.subscriptions.push(
       vscode.workspace.onDidDeleteFiles((event) => {
         event.files.forEach((file) => {
-          const deletedPath = file.fsPath;
-          this.markAsHandled(deletedPath);
-          this.removePathsOnDelete(deletedPath);
+          this.removePathsOnDelete(file.fsPath);
         });
 
         // Refresh tree view (debounced)
@@ -60,11 +51,7 @@ export class FileWatcher {
 
     // Handle creates from VS Code UI
     this.context.subscriptions.push(
-      vscode.workspace.onDidCreateFiles((event) => {
-        event.files.forEach((file) => {
-          this.markAsHandled(file.fsPath);
-        });
-
+      vscode.workspace.onDidCreateFiles(() => {
         // Refresh tree view (debounced)
         this.scheduleRefresh();
       })
@@ -121,15 +108,6 @@ export class FileWatcher {
   }
 
   /**
-   * Mark a file as recently handled to avoid double-processing
-   * Automatically clears after 200ms
-   */
-  private markAsHandled(filePath: string): void {
-    this.recentlyHandled.add(filePath);
-    setTimeout(() => this.recentlyHandled.delete(filePath), 200);
-  }
-
-  /**
    * Schedule a tree view refresh with debouncing
    * Batches multiple rapid file operations into a single refresh
    */
@@ -141,5 +119,31 @@ export class FileWatcher {
       this.treeDataProvider.refresh();
       this.refreshTimeout = undefined;
     }, 100);
+  }
+
+  /**
+   * Clean up invalid tags (files/folders that no longer exist)
+   * Returns the number of tags removed
+   */
+  async cleanup(): Promise<number> {
+    const allTags = this.tagManager.getAllTags();
+    let removedCount = 0;
+
+    for (const filePath of Object.keys(allTags)) {
+      try {
+        await vscode.workspace.fs.stat(vscode.Uri.file(filePath));
+        // File exists, keep the tag
+      } catch {
+        // File doesn't exist, remove the tag
+        this.tagManager.removeTag(filePath);
+        removedCount++;
+      }
+    }
+
+    // Always refresh tree view to update folder contents
+    // (even if no tags were removed, untagged files in tagged folders may have changed)
+    this.treeDataProvider.refresh();
+
+    return removedCount;
   }
 }

@@ -31,10 +31,6 @@ export async function activate(context: vscode.ExtensionContext) {
 		})
 	);
 
-	// Register commands
-	const commands = new Commands(tagManager);
-	commands.registerCommands(context);
-
 	// Register tree view
 	const treeDataProvider = new TagsTreeDataProvider(tagManager);
 	context.subscriptions.push(
@@ -53,6 +49,10 @@ export async function activate(context: vscode.ExtensionContext) {
 	// Register file watcher for tracking file operations
 	const fileWatcher = new FileWatcher(tagManager, context, treeDataProvider);
 	fileWatcher.register();
+
+	// Register commands (after fileWatcher is initialized)
+	const commands = new Commands(tagManager, fileWatcher);
+	commands.registerCommands(context);
 }
 
 // This method is called when your extension is deactivated

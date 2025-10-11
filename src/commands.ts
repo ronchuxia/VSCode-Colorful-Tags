@@ -1,12 +1,16 @@
 import * as vscode from 'vscode';
 import { TagColor, TagColorQuickPickItem } from './types';
 import { TagManager } from './tagManager';
+import { FileWatcher } from './fileWatcher';
 
 /**
  * Command handlers for the extension
  */
 export class Commands {
-  constructor(private tagManager: TagManager) {}
+  constructor(
+    private tagManager: TagManager,
+    private fileWatcher: FileWatcher
+  ) {}
 
   /**
    * Register all commands
@@ -15,7 +19,8 @@ export class Commands {
     context.subscriptions.push(
       vscode.commands.registerCommand('colorful-tags.addTag', (uri: vscode.Uri) => this.addTag(uri)),
       vscode.commands.registerCommand('colorful-tags.removeTag', (uri: vscode.Uri) => this.removeTag(uri)),
-      vscode.commands.registerCommand('colorful-tags.setTagName', () => this.setTagName())
+      vscode.commands.registerCommand('colorful-tags.setTagName', () => this.setTagName()),
+      vscode.commands.registerCommand('colorful-tags.refresh', () => this.refresh())
     );
   }
 
@@ -134,5 +139,18 @@ export class Commands {
   private getFileName(filePath: string): string {
     const parts = filePath.split(/[\\/]/);
     return parts[parts.length - 1] || filePath;
+  }
+
+  /**
+   * Refresh and clean up invalid tags
+   */
+  private async refresh(): Promise<void> {
+    const removedCount = await this.fileWatcher.cleanup();
+
+    if (removedCount > 0) {
+      vscode.window.showInformationMessage(`Removed ${removedCount} invalid tag(s)`);
+    } else {
+      vscode.window.showInformationMessage('All tags are valid');
+    }
   }
 }

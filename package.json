@@ -26,6 +26,11 @@
       {
         "command": "colorful-tags.setTagName",
         "title": "Colorful Tags: Rename Tag"
+      },
+      {
+        "command": "colorful-tags.refresh",
+        "title": "Colorful Tags: Refresh",
+        "icon": "$(refresh)"
       }
     ],
     "menus": {
@@ -39,6 +44,13 @@
           "command": "colorful-tags.removeTag",
           "title": "Remove Tag",
           "group": "colorful-tags@2"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "colorful-tags.refresh",
+          "when": "view == colorful-tags.tagsView",
+          "group": "navigation"
         }
       ]
     },
