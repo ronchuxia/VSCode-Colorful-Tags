@@ -7,6 +7,7 @@ import { Commands } from './commands';
 import { TagsTreeDataProvider } from './treeDataProvider';
 import { FileDecorationProvider } from './decorationProvider';
 import { FileWatcher } from './fileWatcher';
+import { Configuration } from './configuration';
 
 // Global instances
 let tagManager: TagManager;
@@ -43,7 +44,15 @@ export async function activate(context: vscode.ExtensionContext) {
 	// Register file decoration provider
 	const decorationProvider = new FileDecorationProvider(tagManager);
 	context.subscriptions.push(
-		vscode.window.registerFileDecorationProvider(decorationProvider)
+		vscode.window.registerFileDecorationProvider(decorationProvider),
+		// Refresh decorations when tags change
+		tagManager.onDidChangeTags(() => {
+			decorationProvider.refresh();
+		}),
+		// Refresh decorations when configuration changes
+		Configuration.onDidChange(() => {
+			decorationProvider.refresh();
+		})
 	);
 
 	// Register file watcher for tracking file operations

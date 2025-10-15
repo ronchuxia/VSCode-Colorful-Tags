@@ -3,13 +3,13 @@
   "displayName": "Colorful Tags",
   "description": "Tag files and folders with colors.",
   "version": "0.1.0",
-  "publisher": "ronchuxia",
+  "publisher": "XiaChu",
   "repository": {
     "type": "git",
     "url": "https://github.com/ronchuxia/VSCode-Colorful-Tags"
   },
   "engines": {
-    "vscode": "^1.52.0"
+    "vscode": "^1.104.0"
   },
   "categories": [
     "Other"
@@ -27,6 +27,16 @@
   ],
   "main": "./dist/extension.js",
   "contributes": {
+    "configuration": {
+      "title": "Colorful Tags",
+      "properties": {
+        "colorful-tags.decorationsEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show colored badges for tagged files in the Explorer view."
+        }
+      }
+    },
     "commands": [
       {
         "command": "colorful-tags.addTag",
@@ -80,7 +90,8 @@
       "colorful-tags": [
         {
           "id": "colorful-tags.tagsView",
-          "name": "Tagged Files"
+          "name": "Tagged Files",
+          "icon": "$(tag)"
         }
       ]
     }
@@ -100,16 +111,16 @@
     "test": "vscode-test"
   },
   "devDependencies": {
-    "@types/vscode": "^1.104.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "22.x",
+    "@types/vscode": "^1.52.0",
     "@typescript-eslint/eslint-plugin": "^8.45.0",
     "@typescript-eslint/parser": "^8.45.0",
-    "eslint": "^9.36.0",
-    "esbuild": "^0.25.10",
-    "npm-run-all": "^4.1.5",
-    "typescript": "^5.9.3",
     "@vscode/test-cli": "^0.0.11",
-    "@vscode/test-electron": "^2.5.2"
+    "@vscode/test-electron": "^2.5.2",
+    "esbuild": "^0.25.10",
+    "eslint": "^9.36.0",
+    "npm-run-all": "^4.1.5",
+    "typescript": "^5.9.3"
   }
 }

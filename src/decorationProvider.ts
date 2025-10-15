@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { TagColor } from './types';
 import { TagManager } from './tagManager';
+import { Configuration } from './configuration';
 
 /**
  * Provides file decorations (colored badges) for tagged files in the Explorer
@@ -9,17 +10,24 @@ export class FileDecorationProvider implements vscode.FileDecorationProvider {
   private _onDidChangeFileDecorations = new vscode.EventEmitter<vscode.Uri | vscode.Uri[] | undefined>();
   readonly onDidChangeFileDecorations = this._onDidChangeFileDecorations.event;
 
-  constructor(private tagManager: TagManager) {
-    // Refresh decorations when tags change
-    tagManager.onDidChangeTags(() => {
-      this._onDidChangeFileDecorations.fire(undefined);
-    });
+  constructor(private tagManager: TagManager) {}
+
+  /**
+   * Refresh decorations (called when tags or configuration changes)
+   */
+  refresh(): void {
+    this._onDidChangeFileDecorations.fire(undefined);
   }
 
   /**
    * Provide decoration for a file or folder
    */
   provideFileDecoration(uri: vscode.Uri): vscode.FileDecoration | undefined {
+    // Check if decorations are enabled in settings
+    if (!Configuration.getDecorationsEnabled()) {
+      return undefined;
+    }
+
     const filePath = uri.fsPath;
     const tagColor = this.tagManager.getTag(filePath);
 
