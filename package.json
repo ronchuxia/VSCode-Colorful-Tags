@@ -57,47 +57,55 @@
       },
       {
         "command": "colorful-tags.openToSide",
-        "title": "Open to the Side (CT)"
+        "title": "Open to the Side"
       },
       {
         "command": "colorful-tags.revealInExplorer",
-        "title": "Reveal in Explorer (CT)"
+        "title": "Reveal in Explorer"
       },
       {
         "command": "colorful-tags.revealFileInOS",
-        "title": "Reveal in Finder (CT)"
+        "title": "Reveal in Finder"
       },
       {
         "command": "colorful-tags.copyFilePath",
-        "title": "Copy Path (CT)"
+        "title": "Copy Path"
       },
       {
         "command": "colorful-tags.copyRelativeFilePath",
-        "title": "Copy Relative Path (CT)"
+        "title": "Copy Relative Path"
       },
       {
         "command": "colorful-tags.renameFile",
-        "title": "Rename (CT)"
+        "title": "Rename"
       },
       {
         "command": "colorful-tags.deleteFile",
-        "title": "Delete (CT)"
+        "title": "Delete"
       },
       {
         "command": "colorful-tags.openInTerminal",
-        "title": "Open in Integrated Terminal (CT)"
+        "title": "Open in Integrated Terminal"
       },
       {
         "command": "colorful-tags.newFile",
-        "title": "New File (CT)"
+        "title": "New File"
       },
       {
         "command": "colorful-tags.newFolder",
-        "title": "New Folder (CT)"
+        "title": "New Folder"
       },
       {
         "command": "colorful-tags.clearTagGroup",
         "title": "Colorful Tags: Clear Tag Group"
+      },
+      {
+        "command": "colorful-tags.selectForCompare",
+        "title": "Select for Compare"
+      },
+      {
+        "command": "colorful-tags.compareWithSelected",
+        "title": "Compare with Selected"
       }
     ],
     "menus": {
@@ -148,6 +156,16 @@
           "command": "colorful-tags.newFolder",
           "when": "view == colorful-tags.tagsView && viewItem == folder",
           "group": "2_workspace"
+        },
+        {
+          "command": "colorful-tags.selectForCompare",
+          "when": "view == colorful-tags.tagsView && viewItem == file",
+          "group": "5_compare@2"
+        },
+        {
+          "command": "colorful-tags.compareWithSelected",
+          "when": "view == colorful-tags.tagsView && viewItem == file && colorful-tags.hasFileSelectedForCompare",
+          "group": "5_compare@1"
         },
         {
           "command": "colorful-tags.copyFilePath",

@@ -18,6 +18,9 @@ let tagStorage: TagStorageManager;
 export async function activate(context: vscode.ExtensionContext) {
 	console.log('Colorful Tags extension is now active!');
 
+	// Initialize context keys
+	await vscode.commands.executeCommand('setContext', 'colorful-tags.hasFileSelectedForCompare', false);
+
 	// Initialize TagManager
 	tagManager = new TagManager();
 

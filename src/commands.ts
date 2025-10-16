@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
+import * as path from 'path';
 import { TagColor, TagColorQuickPickItem } from './types';
 import { TagManager } from './tagManager';
 import { FileWatcher } from './fileWatcher';
@@ -8,6 +9,8 @@ import { FileWatcher } from './fileWatcher';
  * Command handlers for the extension
  */
 export class Commands {
+  private selectedForCompare: string | undefined;
+
   constructor(
     private tagManager: TagManager,
     private fileWatcher: FileWatcher
@@ -34,6 +37,8 @@ export class Commands {
       vscode.commands.registerCommand('colorful-tags.openInTerminal', (resource: vscode.Uri | vscode.TreeItem | undefined) => this.openInTerminal(resource)),
       vscode.commands.registerCommand('colorful-tags.newFile', (resource: vscode.Uri | vscode.TreeItem | undefined) => this.newFile(resource)),
       vscode.commands.registerCommand('colorful-tags.newFolder', (resource: vscode.Uri | vscode.TreeItem | undefined) => this.newFolder(resource)),
+      vscode.commands.registerCommand('colorful-tags.selectForCompare', (resource: vscode.Uri | vscode.TreeItem | undefined) => this.selectForCompare(resource)),
+      vscode.commands.registerCommand('colorful-tags.compareWithSelected', (resource: vscode.Uri | vscode.TreeItem | undefined) => this.compareWithSelected(resource)),
       vscode.commands.registerCommand('colorful-tags.clearTagGroup', (resource: vscode.TreeItem | undefined) => this.clearTagGroup(resource))
     );
   }
@@ -66,7 +71,7 @@ export class Commands {
 
     if (selected) {
       this.tagManager.addTag(filePath, selected.color);
-      vscode.window.showInformationMessage(`Tag ${selected.color} added to ${this.getFileName(filePath)}`);
+      vscode.window.showInformationMessage(`Tag ${selected.color} added to ${path.basename(filePath)}`);
     }
   }
 
@@ -81,12 +86,12 @@ export class Commands {
     }
 
     if (!this.tagManager.hasTag(filePath)) {
-      vscode.window.showWarningMessage(`${this.getFileName(filePath)} has no tag`);
+      vscode.window.showWarningMessage(`${path.basename(filePath)} has no tag`);
       return;
     }
 
     this.tagManager.removeTag(filePath);
-    vscode.window.showInformationMessage(`Tag removed from ${this.getFileName(filePath)}`);
+    vscode.window.showInformationMessage(`Tag removed from ${path.basename(filePath)}`);
   }
 
   /**
@@ -162,14 +167,6 @@ export class Commands {
     }
 
     return undefined;
-  }
-
-  /**
-   * Get file name from path
-   */
-  private getFileName(filePath: string): string {
-    const parts = filePath.split(/[\\/]/);
-    return parts[parts.length - 1] || filePath;
   }
 
   /**
@@ -265,8 +262,8 @@ export class Commands {
       return;
     }
 
-    const oldName = this.getFileName(filePath);
-    const parentDir = filePath.substring(0, filePath.lastIndexOf(oldName));
+    const oldName = path.basename(filePath);
+    const parentDir = path.dirname(filePath);
 
     // Show input box to enter new name
     const newName = await vscode.window.showInputBox({
@@ -288,7 +285,7 @@ export class Commands {
     }
 
     const oldUri = vscode.Uri.file(filePath);
-    const newUri = vscode.Uri.file(parentDir + newName);
+    const newUri = vscode.Uri.file(path.join(parentDir, newName));
 
     const edit = new vscode.WorkspaceEdit();
     edit.renameFile(oldUri, newUri, { overwrite: false });
@@ -311,7 +308,7 @@ export class Commands {
       return;
     }
 
-    const fileName = this.getFileName(filePath);
+    const fileName = path.basename(filePath);
     const uri = vscode.Uri.file(filePath);
 
     // Show confirmation dialog
@@ -355,13 +352,11 @@ export class Commands {
 
     // If it's a file, use its parent directory
     if (!isDirectory) {
-      const fileName = this.getFileName(filePath);
-      terminalPath = filePath.substring(0, filePath.lastIndexOf(fileName));
+      terminalPath = path.dirname(filePath);
     }
 
-    const uri = vscode.Uri.file(terminalPath);
     const terminal = vscode.window.createTerminal({
-      cwd: uri,
+      cwd: terminalPath,
       name: 'Terminal'
     });
     terminal.show();
@@ -449,6 +444,43 @@ export class Commands {
     } catch (error) {
       vscode.window.showErrorMessage(`Failed to create folder: ${error}`);
     }
+  }
+
+  /**
+   * Select file for comparison
+   */
+  private async selectForCompare(uriOrTreeItem: vscode.Uri | vscode.TreeItem | undefined): Promise<void> {
+    const filePath = this.getFilePath(uriOrTreeItem);
+    if (!filePath) {
+      vscode.window.showErrorMessage('No file selected');
+      return;
+    }
+
+    this.selectedForCompare = filePath;
+    await vscode.commands.executeCommand('setContext', 'colorful-tags.hasFileSelectedForCompare', true);
+    vscode.window.showInformationMessage(`Selected ${path.basename(filePath)} for compare`);
+  }
+
+  /**
+   * Compare file with previously selected file
+   */
+  private async compareWithSelected(uriOrTreeItem: vscode.Uri | vscode.TreeItem | undefined): Promise<void> {
+    const filePath = this.getFilePath(uriOrTreeItem);
+    if (!filePath) {
+      vscode.window.showErrorMessage('No file selected');
+      return;
+    }
+
+    if (!this.selectedForCompare) {
+      vscode.window.showErrorMessage('No file selected for comparison. Use "Select for Compare" first.');
+      return;
+    }
+
+    const leftUri = vscode.Uri.file(this.selectedForCompare);
+    const rightUri = vscode.Uri.file(filePath);
+    const title = `${path.basename(this.selectedForCompare)} ↔ ${path.basename(filePath)}`;
+
+    await vscode.commands.executeCommand('vscode.diff', leftUri, rightUri, title);
   }
 
   /**
