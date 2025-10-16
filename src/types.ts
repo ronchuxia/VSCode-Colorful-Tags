@@ -2,21 +2,13 @@
  * Available tag colors matching macOS Finder tags
  */
 export enum TagColor {
-  Red = 'red',
-  Orange = 'orange',
-  Yellow = 'yellow',
-  Green = 'green',
-  Blue = 'blue',
-  Purple = 'purple',
-  Gray = 'gray'
-}
-
-/**
- * Information about a tag including its color and optional custom name
- */
-export interface TagInfo {
-  color: TagColor;
-  name?: string;
+  Red = 'Red',
+  Orange = 'Orange',
+  Yellow = 'Yellow',
+  Green = 'Green',
+  Blue = 'Blue',
+  Purple = 'Purple',
+  Gray = 'Gray'
 }
 
 /**

@@ -82,6 +82,22 @@
       {
         "command": "colorful-tags.deleteFile",
         "title": "Delete (CT)"
+      },
+      {
+        "command": "colorful-tags.openInTerminal",
+        "title": "Open in Integrated Terminal (CT)"
+      },
+      {
+        "command": "colorful-tags.newFile",
+        "title": "New File (CT)"
+      },
+      {
+        "command": "colorful-tags.newFolder",
+        "title": "New Folder (CT)"
+      },
+      {
+        "command": "colorful-tags.clearTagGroup",
+        "title": "Colorful Tags: Clear Tag Group"
       }
     ],
     "menus": {
@@ -106,17 +122,32 @@
         {
           "command": "colorful-tags.openToSide",
           "when": "view == colorful-tags.tagsView && viewItem == file",
-          "group": "navigation"
+          "group": "navigation@1"
         },
         {
           "command": "colorful-tags.revealInExplorer",
           "when": "view == colorful-tags.tagsView && (viewItem == file || viewItem == folder)",
-          "group": "navigation"
+          "group": "navigation@2"
         },
         {
           "command": "colorful-tags.revealFileInOS",
           "when": "view == colorful-tags.tagsView && (viewItem == file || viewItem == folder)",
-          "group": "navigation"
+          "group": "navigation@3"
+        },
+        {
+          "command": "colorful-tags.openInTerminal",
+          "when": "view == colorful-tags.tagsView && (viewItem == file || viewItem == folder)",
+          "group": "navigation@4"
+        },
+        {
+          "command": "colorful-tags.newFile",
+          "when": "view == colorful-tags.tagsView && viewItem == folder",
+          "group": "2_workspace"
+        },
+        {
+          "command": "colorful-tags.newFolder",
+          "when": "view == colorful-tags.tagsView && viewItem == folder",
+          "group": "2_workspace"
         },
         {
           "command": "colorful-tags.copyFilePath",
@@ -147,6 +178,16 @@
           "command": "colorful-tags.removeTag",
           "when": "view == colorful-tags.tagsView && (viewItem == file || viewItem == folder)",
           "group": "colorful-tags@2"
+        },
+        {
+          "command": "colorful-tags.setTagName",
+          "when": "view == colorful-tags.tagsView && viewItem == tagGroup",
+          "group": "tag_management"
+        },
+        {
+          "command": "colorful-tags.clearTagGroup",
+          "when": "view == colorful-tags.tagsView && viewItem == tagGroup",
+          "group": "tag_management"
         }
       ]
     },

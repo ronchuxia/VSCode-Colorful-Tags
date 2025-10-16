@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as fs from 'fs';
 import { TagColor, TagColorQuickPickItem } from './types';
 import { TagManager } from './tagManager';
 import { FileWatcher } from './fileWatcher';
@@ -20,7 +21,7 @@ export class Commands {
       // Functional commands
       vscode.commands.registerCommand('colorful-tags.addTag', (resource: vscode.Uri | vscode.TreeItem | undefined) => this.addTag(resource)),
       vscode.commands.registerCommand('colorful-tags.removeTag', (resource: vscode.Uri | vscode.TreeItem | undefined) => this.removeTag(resource)),
-      vscode.commands.registerCommand('colorful-tags.setTagName', () => this.setTagName()),
+      vscode.commands.registerCommand('colorful-tags.setTagName', (resource: vscode.TreeItem | undefined) => this.setTagName(resource)),
       vscode.commands.registerCommand('colorful-tags.refresh', () => this.refresh()),
       // Context menu commands
       vscode.commands.registerCommand('colorful-tags.openToSide', (resource: vscode.Uri | vscode.TreeItem | undefined) => this.openToSide(resource)),
@@ -29,7 +30,11 @@ export class Commands {
       vscode.commands.registerCommand('colorful-tags.copyFilePath', (resource: vscode.Uri | vscode.TreeItem | undefined) => this.copyFilePath(resource)),
       vscode.commands.registerCommand('colorful-tags.copyRelativeFilePath', (resource: vscode.Uri | vscode.TreeItem | undefined) => this.copyRelativeFilePath(resource)),
       vscode.commands.registerCommand('colorful-tags.renameFile', (resource: vscode.Uri | vscode.TreeItem | undefined) => this.renameFile(resource)),
-      vscode.commands.registerCommand('colorful-tags.deleteFile', (resource: vscode.Uri | vscode.TreeItem | undefined) => this.deleteFile(resource))
+      vscode.commands.registerCommand('colorful-tags.deleteFile', (resource: vscode.Uri | vscode.TreeItem | undefined) => this.deleteFile(resource)),
+      vscode.commands.registerCommand('colorful-tags.openInTerminal', (resource: vscode.Uri | vscode.TreeItem | undefined) => this.openInTerminal(resource)),
+      vscode.commands.registerCommand('colorful-tags.newFile', (resource: vscode.Uri | vscode.TreeItem | undefined) => this.newFile(resource)),
+      vscode.commands.registerCommand('colorful-tags.newFolder', (resource: vscode.Uri | vscode.TreeItem | undefined) => this.newFolder(resource)),
+      vscode.commands.registerCommand('colorful-tags.clearTagGroup', (resource: vscode.TreeItem | undefined) => this.clearTagGroup(resource))
     );
   }
 
@@ -87,30 +92,38 @@ export class Commands {
   /**
    * Set a custom name for a tag color
    */
-  private async setTagName(): Promise<void> {
-    // Show quick pick to select a color
-    const colorItems: TagColorQuickPickItem[] = [
-      { label: 'Red', color: TagColor.Red, description: this.tagManager.getTagName(TagColor.Red) },
-      { label: 'Orange', color: TagColor.Orange, description: this.tagManager.getTagName(TagColor.Orange) },
-      { label: 'Yellow', color: TagColor.Yellow, description: this.tagManager.getTagName(TagColor.Yellow) },
-      { label: 'Green', color: TagColor.Green, description: this.tagManager.getTagName(TagColor.Green) },
-      { label: 'Blue', color: TagColor.Blue, description: this.tagManager.getTagName(TagColor.Blue) },
-      { label: 'Purple', color: TagColor.Purple, description: this.tagManager.getTagName(TagColor.Purple) },
-      { label: 'Gray', color: TagColor.Gray, description: this.tagManager.getTagName(TagColor.Gray) }
-    ];
+  private async setTagName(treeItem: vscode.TreeItem | undefined): Promise<void> {
+    let selectedColor: TagColor | undefined;
 
-    const selected = await vscode.window.showQuickPick(colorItems, {
-      placeHolder: 'Select a tag color to rename'
-    });
+    // If called from context menu with a tag group TreeItem
+    if (treeItem) {
+      selectedColor = (treeItem as any).tagColor as TagColor;
+    } else {
+      // Show quick pick to select a color (when called from command palette)
+      const colorItems: TagColorQuickPickItem[] = [
+        { label: 'Red', color: TagColor.Red, description: this.tagManager.getTagName(TagColor.Red) },
+        { label: 'Orange', color: TagColor.Orange, description: this.tagManager.getTagName(TagColor.Orange) },
+        { label: 'Yellow', color: TagColor.Yellow, description: this.tagManager.getTagName(TagColor.Yellow) },
+        { label: 'Green', color: TagColor.Green, description: this.tagManager.getTagName(TagColor.Green) },
+        { label: 'Blue', color: TagColor.Blue, description: this.tagManager.getTagName(TagColor.Blue) },
+        { label: 'Purple', color: TagColor.Purple, description: this.tagManager.getTagName(TagColor.Purple) },
+        { label: 'Gray', color: TagColor.Gray, description: this.tagManager.getTagName(TagColor.Gray) }
+      ];
 
-    if (!selected) {
-      return;
+      const selected = await vscode.window.showQuickPick(colorItems, {
+        placeHolder: 'Select a tag color to rename'
+      });
+
+      if (!selected) {
+        return;
+      }
+      selectedColor = selected.color;
     }
 
     // Show input box to enter new name
     const newName = await vscode.window.showInputBox({
-      prompt: `Enter a new name for ${selected.label} tag`,
-      value: this.tagManager.getTagName(selected.color),
+      prompt: `Enter a new name for ${selectedColor} tag`,
+      value: this.tagManager.getTagName(selectedColor),
       validateInput: (value) => {
         if (!value || value.trim().length === 0) {
           return 'Tag name cannot be empty';
@@ -120,8 +133,8 @@ export class Commands {
     });
 
     if (newName) {
-      this.tagManager.setTagName(selected.color, newName.trim());
-      vscode.window.showInformationMessage(`Tag ${selected.label} renamed to "${newName}"`);
+      this.tagManager.setTagName(selectedColor, newName.trim());
+      vscode.window.showInformationMessage(`Tag ${selectedColor} renamed to "${newName}"`);
     }
   }
 
@@ -324,5 +337,158 @@ export class Commands {
     } else {
       vscode.window.showErrorMessage('Failed to delete');
     }
+  }
+
+  /**
+   * Open integrated terminal at file/folder location
+   */
+  private async openInTerminal(uriOrTreeItem: vscode.Uri | vscode.TreeItem | undefined): Promise<void> {
+    const filePath = this.getFilePath(uriOrTreeItem);
+    if (!filePath) {
+      vscode.window.showErrorMessage('No file or folder selected');
+      return;
+    }
+
+    // Determine the directory to open terminal in
+    let terminalPath = filePath;
+    const isDirectory = fs.existsSync(filePath) && fs.statSync(filePath).isDirectory();
+
+    // If it's a file, use its parent directory
+    if (!isDirectory) {
+      const fileName = this.getFileName(filePath);
+      terminalPath = filePath.substring(0, filePath.lastIndexOf(fileName));
+    }
+
+    const uri = vscode.Uri.file(terminalPath);
+    const terminal = vscode.window.createTerminal({
+      cwd: uri,
+      name: 'Terminal'
+    });
+    terminal.show();
+  }
+
+  /**
+   * Create a new file in a folder
+   */
+  private async newFile(uriOrTreeItem: vscode.Uri | vscode.TreeItem | undefined): Promise<void> {
+    const folderPath = this.getFilePath(uriOrTreeItem);
+    if (!folderPath) {
+      vscode.window.showErrorMessage('No folder selected');
+      return;
+    }
+
+    const fileName = await vscode.window.showInputBox({
+      prompt: 'Enter file name',
+      validateInput: (value) => {
+        if (!value || value.trim().length === 0) {
+          return 'File name cannot be empty';
+        }
+        if (value.includes('/') || value.includes('\\')) {
+          return 'File name cannot contain path separators';
+        }
+        return null;
+      }
+    });
+
+    if (!fileName) {
+      return;
+    }
+
+    const newFilePath = `${folderPath}/${fileName}`;
+    const newFileUri = vscode.Uri.file(newFilePath);
+
+    const edit = new vscode.WorkspaceEdit();
+    edit.createFile(newFileUri, {});
+
+    const success = await vscode.workspace.applyEdit(edit);
+    if (success) {
+      // Open the new file in the editor
+      await vscode.window.showTextDocument(newFileUri);
+    } else {
+      vscode.window.showErrorMessage('Failed to create file');
+    }
+  }
+
+  /**
+   * Create a new folder in a folder
+   */
+  private async newFolder(uriOrTreeItem: vscode.Uri | vscode.TreeItem | undefined): Promise<void> {
+    const folderPath = this.getFilePath(uriOrTreeItem);
+    if (!folderPath) {
+      vscode.window.showErrorMessage('No folder selected');
+      return;
+    }
+
+    const folderName = await vscode.window.showInputBox({
+      prompt: 'Enter folder name',
+      validateInput: (value) => {
+        if (!value || value.trim().length === 0) {
+          return 'Folder name cannot be empty';
+        }
+        if (value.includes('/') || value.includes('\\')) {
+          return 'Folder name cannot contain path separators';
+        }
+        return null;
+      }
+    });
+
+    if (!folderName) {
+      return;
+    }
+
+    const newFolderPath = `${folderPath}/${folderName}`;
+
+    try {
+      // Use Node.js fs to create directory
+      fs.mkdirSync(newFolderPath, { recursive: true });
+
+      // Manually trigger cleanup/refresh since fs doesn't fire VS Code events
+      await this.fileWatcher.cleanup();
+
+      vscode.window.showInformationMessage(`Folder '${folderName}' created`);
+    } catch (error) {
+      vscode.window.showErrorMessage(`Failed to create folder: ${error}`);
+    }
+  }
+
+  /**
+   * Clear all tags from a tag group
+   */
+  private async clearTagGroup(treeItem: vscode.TreeItem | undefined): Promise<void> {
+    let selectedColor: TagColor | undefined;
+
+    // If called from context menu with a tag group TreeItem
+    if (treeItem) {
+      selectedColor = (treeItem as any).tagColor as TagColor;
+    } else {
+      // Show quick pick to select a color (when called from command palette)
+      const colorItems: TagColorQuickPickItem[] = [
+        { label: 'Red', color: TagColor.Red, description: this.tagManager.getTagName(TagColor.Red) },
+        { label: 'Orange', color: TagColor.Orange, description: this.tagManager.getTagName(TagColor.Orange) },
+        { label: 'Yellow', color: TagColor.Yellow, description: this.tagManager.getTagName(TagColor.Yellow) },
+        { label: 'Green', color: TagColor.Green, description: this.tagManager.getTagName(TagColor.Green) },
+        { label: 'Blue', color: TagColor.Blue, description: this.tagManager.getTagName(TagColor.Blue) },
+        { label: 'Purple', color: TagColor.Purple, description: this.tagManager.getTagName(TagColor.Purple) },
+        { label: 'Gray', color: TagColor.Gray, description: this.tagManager.getTagName(TagColor.Gray) }
+      ];
+
+      const selected = await vscode.window.showQuickPick(colorItems, {
+        placeHolder: 'Select a tag group to clear'
+      });
+
+      if (!selected) {
+        return;
+      }
+      selectedColor = selected.color;
+    }
+
+    const files = this.tagManager.getFilesByTag(selectedColor);
+
+    // Remove all tags of this color
+    files.forEach(filePath => {
+      this.tagManager.removeTag(filePath);
+    });
+
+    vscode.window.showInformationMessage(`Removed ${files.length} tag(s) from ${selectedColor}`);
   }
 }

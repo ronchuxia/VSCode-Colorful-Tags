@@ -100,7 +100,7 @@ export class TagsTreeDataProvider implements vscode.TreeDataProvider<TagTreeItem
     return usedTags.map(color => {
       const tagName = this.tagManager.getTagName(color);
       const fileCount = this.tagManager.getFilesByTag(color).length;
-      const label = `${tagName} (${fileCount})`;
+      const label = `${color} (${tagName}, ${fileCount})`;
 
       return new TagTreeItem(
         label,
