@@ -54,18 +54,44 @@
         "command": "colorful-tags.refresh",
         "title": "Colorful Tags: Refresh",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "colorful-tags.openToSide",
+        "title": "Open to the Side (CT)"
+      },
+      {
+        "command": "colorful-tags.revealInExplorer",
+        "title": "Reveal in Explorer (CT)"
+      },
+      {
+        "command": "colorful-tags.revealFileInOS",
+        "title": "Reveal in Finder (CT)"
+      },
+      {
+        "command": "colorful-tags.copyFilePath",
+        "title": "Copy Path (CT)"
+      },
+      {
+        "command": "colorful-tags.copyRelativeFilePath",
+        "title": "Copy Relative Path (CT)"
+      },
+      {
+        "command": "colorful-tags.renameFile",
+        "title": "Rename (CT)"
+      },
+      {
+        "command": "colorful-tags.deleteFile",
+        "title": "Delete (CT)"
       }
     ],
     "menus": {
       "explorer/context": [
         {
           "command": "colorful-tags.addTag",
-          "title": "Add Tag",
           "group": "colorful-tags@1"
         },
         {
           "command": "colorful-tags.removeTag",
-          "title": "Remove Tag",
           "group": "colorful-tags@2"
         }
       ],
@@ -74,6 +100,53 @@
           "command": "colorful-tags.refresh",
           "when": "view == colorful-tags.tagsView",
           "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "colorful-tags.openToSide",
+          "when": "view == colorful-tags.tagsView && viewItem == file",
+          "group": "navigation"
+        },
+        {
+          "command": "colorful-tags.revealInExplorer",
+          "when": "view == colorful-tags.tagsView && (viewItem == file || viewItem == folder)",
+          "group": "navigation"
+        },
+        {
+          "command": "colorful-tags.revealFileInOS",
+          "when": "view == colorful-tags.tagsView && (viewItem == file || viewItem == folder)",
+          "group": "navigation"
+        },
+        {
+          "command": "colorful-tags.copyFilePath",
+          "when": "view == colorful-tags.tagsView && (viewItem == file || viewItem == folder)",
+          "group": "6_copypath"
+        },
+        {
+          "command": "colorful-tags.copyRelativeFilePath",
+          "when": "view == colorful-tags.tagsView && (viewItem == file || viewItem == folder)",
+          "group": "6_copypath"
+        },
+        {
+          "command": "colorful-tags.renameFile",
+          "when": "view == colorful-tags.tagsView && (viewItem == file || viewItem == folder)",
+          "group": "7_modification"
+        },
+        {
+          "command": "colorful-tags.deleteFile",
+          "when": "view == colorful-tags.tagsView && (viewItem == file || viewItem == folder)",
+          "group": "7_modification"
+        },
+        {
+          "command": "colorful-tags.addTag",
+          "when": "view == colorful-tags.tagsView && (viewItem == file || viewItem == folder)",
+          "group": "colorful-tags@1"
+        },
+        {
+          "command": "colorful-tags.removeTag",
+          "when": "view == colorful-tags.tagsView && (viewItem == file || viewItem == folder)",
+          "group": "colorful-tags@2"
         }
       ]
     },
@@ -113,7 +186,7 @@
   "devDependencies": {
     "@types/mocha": "^10.0.10",
     "@types/node": "22.x",
-    "@types/vscode": "^1.52.0",
+    "@types/vscode": "^1.104.0",
     "@typescript-eslint/eslint-plugin": "^8.45.0",
     "@typescript-eslint/parser": "^8.45.0",
     "@vscode/test-cli": "^0.0.11",

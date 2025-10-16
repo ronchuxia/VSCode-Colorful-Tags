@@ -29,8 +29,9 @@ class TagTreeItem extends vscode.TreeItem {
         title: 'Open File',
         arguments: [vscode.Uri.file(filePath)]
       };
-      this.resourceUri = vscode.Uri.file(filePath); // For icon
+      this.resourceUri = vscode.Uri.file(filePath);
       this.tooltip = filePath;
+      this.contextValue = 'file';
     } else if (type === 'folder' && filePath) {
       // Folder item - click to expand
       this.resourceUri = vscode.Uri.file(filePath);
