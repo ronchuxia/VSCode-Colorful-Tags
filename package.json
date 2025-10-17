@@ -106,6 +106,18 @@
       {
         "command": "colorful-tags.compareWithSelected",
         "title": "Compare with Selected"
+      },
+      {
+        "command": "colorful-tags.cut",
+        "title": "Cut"
+      },
+      {
+        "command": "colorful-tags.copy",
+        "title": "Copy"
+      },
+      {
+        "command": "colorful-tags.paste",
+        "title": "Paste"
       }
     ],
     "menus": {
@@ -166,6 +178,21 @@
           "command": "colorful-tags.compareWithSelected",
           "when": "view == colorful-tags.tagsView && viewItem == file && colorful-tags.hasFileSelectedForCompare",
           "group": "5_compare@1"
+        },
+        {
+          "command": "colorful-tags.cut",
+          "when": "view == colorful-tags.tagsView && (viewItem == file || viewItem == folder)",
+          "group": "5_cutcopypaste@1"
+        },
+        {
+          "command": "colorful-tags.copy",
+          "when": "view == colorful-tags.tagsView && (viewItem == file || viewItem == folder)",
+          "group": "5_cutcopypaste@2"
+        },
+        {
+          "command": "colorful-tags.paste",
+          "when": "view == colorful-tags.tagsView && viewItem == folder && colorful-tags.hasClipboard",
+          "group": "5_cutcopypaste@3"
         },
         {
           "command": "colorful-tags.copyFilePath",

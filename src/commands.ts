@@ -10,6 +10,7 @@ import { FileWatcher } from './fileWatcher';
  */
 export class Commands {
   private selectedForCompare: string | undefined;
+  private clipboard: { path: string; operation: 'copy' | 'cut' } | undefined;
 
   constructor(
     private tagManager: TagManager,
@@ -39,6 +40,9 @@ export class Commands {
       vscode.commands.registerCommand('colorful-tags.newFolder', (resource: vscode.Uri | vscode.TreeItem | undefined) => this.newFolder(resource)),
       vscode.commands.registerCommand('colorful-tags.selectForCompare', (resource: vscode.Uri | vscode.TreeItem | undefined) => this.selectForCompare(resource)),
       vscode.commands.registerCommand('colorful-tags.compareWithSelected', (resource: vscode.Uri | vscode.TreeItem | undefined) => this.compareWithSelected(resource)),
+      vscode.commands.registerCommand('colorful-tags.cut', (resource: vscode.Uri | vscode.TreeItem | undefined) => this.cut(resource)),
+      vscode.commands.registerCommand('colorful-tags.copy', (resource: vscode.Uri | vscode.TreeItem | undefined) => this.copy(resource)),
+      vscode.commands.registerCommand('colorful-tags.paste', (resource: vscode.Uri | vscode.TreeItem | undefined) => this.paste(resource)),
       vscode.commands.registerCommand('colorful-tags.clearTagGroup', (resource: vscode.TreeItem | undefined) => this.clearTagGroup(resource))
     );
   }
@@ -389,7 +393,7 @@ export class Commands {
       return;
     }
 
-    const newFilePath = `${folderPath}/${fileName}`;
+    const newFilePath = path.join(folderPath, fileName);
     const newFileUri = vscode.Uri.file(newFilePath);
 
     const edit = new vscode.WorkspaceEdit();
@@ -431,13 +435,14 @@ export class Commands {
       return;
     }
 
-    const newFolderPath = `${folderPath}/${folderName}`;
+    const newFolderPath = path.join(folderPath, folderName);
+    const newFolderUri = vscode.Uri.file(newFolderPath);
 
     try {
-      // Use Node.js fs to create directory
-      fs.mkdirSync(newFolderPath, { recursive: true });
+      // Use VS Code workspace.fs to create directory
+      await vscode.workspace.fs.createDirectory(newFolderUri);
 
-      // Manually trigger cleanup/refresh since fs doesn't fire VS Code events
+      // Manually trigger cleanup/refresh since workspace.fs doesn't fire VS Code events
       await this.fileWatcher.cleanup();
 
       vscode.window.showInformationMessage(`Folder '${folderName}' created`);
@@ -481,6 +486,122 @@ export class Commands {
     const title = `${path.basename(this.selectedForCompare)} ↔ ${path.basename(filePath)}`;
 
     await vscode.commands.executeCommand('vscode.diff', leftUri, rightUri, title);
+  }
+
+  /**
+   * Cut file or folder to clipboard
+   */
+  private async cut(uriOrTreeItem: vscode.Uri | vscode.TreeItem | undefined): Promise<void> {
+    const filePath = this.getFilePath(uriOrTreeItem);
+    if (!filePath) {
+      vscode.window.showErrorMessage('No file or folder selected');
+      return;
+    }
+
+    this.clipboard = { path: filePath, operation: 'cut' };
+    await vscode.commands.executeCommand('setContext', 'colorful-tags.hasClipboard', true);
+    vscode.window.showInformationMessage(`Cut ${path.basename(filePath)}`);
+  }
+
+  /**
+   * Copy file or folder to clipboard
+   */
+  private async copy(uriOrTreeItem: vscode.Uri | vscode.TreeItem | undefined): Promise<void> {
+    const filePath = this.getFilePath(uriOrTreeItem);
+    if (!filePath) {
+      vscode.window.showErrorMessage('No file or folder selected');
+      return;
+    }
+
+    this.clipboard = { path: filePath, operation: 'copy' };
+    await vscode.commands.executeCommand('setContext', 'colorful-tags.hasClipboard', true);
+    vscode.window.showInformationMessage(`Copied ${path.basename(filePath)}`);
+  }
+
+  /**
+   * Paste file or folder from clipboard
+   */
+  private async paste(uriOrTreeItem: vscode.Uri | vscode.TreeItem | undefined): Promise<void> {
+    const destPath = this.getFilePath(uriOrTreeItem);
+    if (!destPath) {
+      vscode.window.showErrorMessage('No folder selected');
+      return;
+    }
+
+    // Check if destination is a directory
+    const isDirectory = fs.existsSync(destPath) && fs.statSync(destPath).isDirectory();
+    if (!isDirectory) {
+      vscode.window.showErrorMessage('Destination must be a folder');
+      return;
+    }
+
+    if (!this.clipboard) {
+      vscode.window.showErrorMessage('Clipboard is empty');
+      return;
+    }
+
+    const sourcePath = this.clipboard.path;
+    const sourceName = path.basename(sourcePath);
+    let targetPath = path.join(destPath, sourceName);
+
+    try {
+      // Check if source still exists
+      if (!fs.existsSync(sourcePath)) {
+        vscode.window.showErrorMessage(`Source no longer exists: ${sourceName}`);
+        this.clipboard = undefined;
+        await vscode.commands.executeCommand('setContext', 'colorful-tags.hasClipboard', false);
+        return;
+      }
+
+      // If target exists, find unique name with " copy" suffix
+      if (fs.existsSync(targetPath)) {
+        const ext = path.extname(sourceName);
+        const nameWithoutExt = sourceName.slice(0, sourceName.length - ext.length);
+
+        let copyNumber = 0;
+        let newName: string;
+
+        do {
+          if (copyNumber === 0) {
+            newName = `${nameWithoutExt} copy${ext}`;
+          } else {
+            newName = `${nameWithoutExt} copy ${copyNumber}${ext}`;
+          }
+          targetPath = path.join(destPath, newName);
+          copyNumber++;
+        } while (fs.existsSync(targetPath));
+      }
+
+      const sourceUri = vscode.Uri.file(sourcePath);
+      const targetUri = vscode.Uri.file(targetPath);
+
+      if (this.clipboard.operation === 'copy') {
+        // Copy operation
+        await vscode.workspace.fs.copy(sourceUri, targetUri, { overwrite: true });
+        vscode.window.showInformationMessage(`Copied ${sourceName} to ${path.basename(destPath)}`);
+
+        // Refresh tags and tree view (workspace.fs doesn't trigger events)
+        await this.fileWatcher.cleanup();
+      } else {
+        // Cut operation (rename / move)
+        // Use WorkspaceEdit.renameFile which triggers rename events
+        const edit = new vscode.WorkspaceEdit();
+        edit.renameFile(sourceUri, targetUri, { overwrite: true });
+        const success = await vscode.workspace.applyEdit(edit);
+
+        if (success) {
+          vscode.window.showInformationMessage(`Moved ${sourceName} to ${path.basename(destPath)}`);
+          // Clear clipboard after cut+paste
+          this.clipboard = undefined;
+          await vscode.commands.executeCommand('setContext', 'colorful-tags.hasClipboard', false);
+        } else {
+          vscode.window.showErrorMessage(`Failed to move ${sourceName}`);
+        }
+      }
+
+    } catch (error) {
+      vscode.window.showErrorMessage(`Error pasting: ${error}`);
+    }
   }
 
   /**

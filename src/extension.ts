@@ -20,6 +20,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
 	// Initialize context keys
 	await vscode.commands.executeCommand('setContext', 'colorful-tags.hasFileSelectedForCompare', false);
+	await vscode.commands.executeCommand('setContext', 'colorful-tags.hasClipboard', false);
 
 	// Initialize TagManager
 	tagManager = new TagManager();
