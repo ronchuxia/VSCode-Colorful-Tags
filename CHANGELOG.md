@@ -79,16 +79,29 @@ All notable changes to the "Colorful Tags" extension will be documented in this 
 ## [Unreleased]
 
 ### Planned Features
-- User settings for customization
-  - Configure auto-update behavior
-- Custom tag colors
-  - User-defined colors
-  - Unlimited types of tags
+- User-defined tags
+  - Generated stable tag IDs
+  - User-defined tag names
+  - Tag colors chosen from the existing 7-color palette
+  - Unlimited tag groups
+  - Add Tag quick pick shows existing tags plus an option to create a new user-defined tag
 - Multiple tags per file
-- Drag and drop support in sidebar
-  - Reorder files within tag groups
-  - Move files between different tags
-- Undo-safe tag deletion (restore tags when file deletion is undone)
-- Automatic detection of external file operations
+  - Add Tag appends the selected tag instead of replacing existing tags
+  - Remove Tag removes directly when there is one tag, or asks which tag to remove when there are multiple
+- Sidebar sorting
+  - Sort tag groups by name
+  - Sort files/folders by name, with folders before files
+- Bulk tag operations
+  - Add one tag to multiple selected files/folders
+  - Remove one tag from multiple selected files/folders
+  - Clear all tags from selected files/folders
+
+### Possible Features
 - Tag search and filter functionality
-- Bulk tag operations (tag multiple files at once)
+  - Consider this if custom/unlimited tags, multiple tags per file, or very large tagged workspaces make the sidebar hard to scan.
+- Drag and drop support in sidebar
+  - Possible behaviors include adding a tag by dropping onto a tag group or reordering files within tag groups.
+- Undo-safe tag deletion
+  - Restore tags when file deletion is undone
+- Automatic detection of external file operations
+  - External rename preservation is not guaranteed.
